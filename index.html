@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARIA – Multi-Tool AI Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ── Reset & Root ─────────────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #09090f;
+      --surface: #0f0f1a;
+      --surface2: #141426;
+      --border: #1e1e35;
+      --border2: #2a2a4a;
+      --text: #e8e8f0;
+      --text-dim: #6b6b8a;
+      --text-faint: #2e2e4e;
+      --accent: #7c5cfc;
+      --accent2: #c45cfc;
+      --gold: #f0c060;
+      --green: #50e3a4;
+      --red: #fc5c7d;
+      --cyan: #5cf0fc;
+      --orange: #fc8c5c;
+      --glow: 0 0 30px rgba(124, 92, 252, 0.25);
+      --glow2: 0 0 60px rgba(124, 92, 252, 0.15);
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Scanline texture ───────────────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
+      pointer-events: none;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+      opacity: 0.6;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: var(--glow);
+      animation: pulse-logo 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-logo {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(124, 92, 252, .4);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(124, 92, 252, .8), 0 0 80px rgba(196, 92, 252, .3);
+      }
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: 4px;
+      color: var(--text);
+    }
+
+    .logo-sub {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      margin-top: -4px;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(80, 227, 164, .08);
+      border: 1px solid rgba(80, 227, 164, .2);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 1px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    .demo-badge {
+      background: rgba(240, 192, 96, .08);
+      border: 1px solid rgba(240, 192, 96, .25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 11px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    .demo-badge.visible {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .new-chat-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #fff;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    .new-chat-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--glow);
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────────────── */
+    .app-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-section {
+      padding: 16px 16px 8px;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .sessions-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 8px 8px;
+    }
+
+    .sessions-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sessions-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sessions-list::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    .session-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      gap: 8px;
+      transition: background .15s;
+      margin-bottom: 2px;
+    }
+
+    .session-item:hover {
+      background: var(--surface2);
+    }
+
+    .session-item.active {
+      background: rgba(124, 92, 252, .15);
+      border: 1px solid rgba(124, 92, 252, .25);
+    }
+
+    .session-item-title {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      color: var(--text);
+    }
+
+    .session-item.active .session-item-title {
+      color: var(--accent);
+    }
+
+    .session-delete {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity .15s, color .15s;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .session-item:hover .session-delete {
+      opacity: 1;
+    }
+
+    .session-delete:hover {
+      color: var(--red);
+      background: rgba(252, 92, 125, .1);
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 8px 16px;
+    }
+
+    /* Tool pills */
+    .tool-grid {
+      padding: 0 12px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .tool-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: .5px;
+      transition: border-color .15s, color .15s;
+    }
+
+    .tool-pill:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .tool-pill .ti {
+      font-size: 13px;
+    }
+
+    /* ── Main chat area ─────────────────────────────────────────────────────────── */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Welcome screen */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 40px;
+      opacity: 1;
+      transition: opacity .3s;
+    }
+
+    .welcome.hidden {
+      display: none;
+    }
+
+    .welcome-glyph {
+      font-size: 60px;
+      margin-bottom: 12px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-12px)
+      }
+    }
+
+    .welcome h2 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+
+    .welcome p {
+      color: var(--text-dim);
+      font-size: 13px;
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.8;
+    }
+
+    .prompt-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .2s;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(124, 92, 252, .08);
+      transform: translateY(-2px);
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      display: none;
+    }
+
+    .messages.visible {
+      display: flex;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    /* Message bubbles */
+    .msg {
+      display: flex;
+      gap: 12px;
+      max-width: 820px;
+      animation: msg-in .3s ease;
+    }
+
+    @keyframes msg-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .msg.user .msg-avatar {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+
+    .msg.assistant .msg-avatar {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+    }
+
+    .msg-bubble {
+      flex: 1;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .msg.user .msg-bubble {
+      background: linear-gradient(135deg, rgba(124, 92, 252, .25), rgba(196, 92, 252, .15));
+      border: 1px solid rgba(124, 92, 252, .35);
+      border-top-right-radius: 4px;
+      color: var(--text);
+    }
+
+    .msg.assistant .msg-bubble {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+
+    /* Tool call cards */
+    .tool-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tool-card {
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .tool-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, .02);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      letter-spacing: .5px;
+      user-select: none;
+    }
+
+    .tool-badge {
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    .badge-email {
+      background: rgba(92, 240, 252, .12);
+      color: var(--cyan);
+      border: 1px solid rgba(92, 240, 252, .2);
+    }
+
+    .badge-calendar {
+      background: rgba(80, 227, 164, .12);
+      color: var(--green);
+      border: 1px solid rgba(80, 227, 164, .2);
+    }
+
+    .badge-youtube {
+      background: rgba(252, 92, 125, .12);
+      color: var(--red);
+      border: 1px solid rgba(252, 92, 125, .2);
+    }
+
+    .badge-spotify {
+      background: rgba(80, 227, 164, .12);
+      color: #1DB954;
+      border: 1px solid rgba(80, 227, 164, .2);
+    }
+
+    .badge-knowledge {
+      background: rgba(240, 192, 96, .12);
+      color: var(--gold);
+      border: 1px solid rgba(240, 192, 96, .2);
+    }
+
+    .badge-default {
+      background: rgba(124, 92, 252, .12);
+      color: var(--accent);
+      border: 1px solid rgba(124, 92, 252, .2);
+    }
+
+    .tool-card-toggle {
+      margin-left: auto;
+      color: var(--text-dim);
+      font-size: 10px;
+    }
+
+    .tool-card-body {
+      padding: 12px 14px;
+      display: none;
+    }
+
+    .tool-card-body.open {
+      display: block;
+    }
+
+    .tool-result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .result-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .result-card-title {
+      font-size: 11px;
+      color: var(--text);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-card-meta {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .result-card-link {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .result-card-link:hover {
+      text-decoration: underline;
+    }
+
+    .email-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+    }
+
+    .email-item-from {
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+
+    .email-item-subj {
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .email-item-snip {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .email-item-date {
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 4px;
+    }
+
+    .event-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+    }
+
+    .event-date-block {
+      flex-shrink: 0;
+      text-align: center;
+      background: rgba(124, 92, 252, .12);
+      border: 1px solid rgba(124, 92, 252, .2);
+      border-radius: 6px;
+      padding: 6px 10px;
+      min-width: 50px;
+    }
+
+    .event-day {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .event-month {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .event-info-title {
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .event-info-time {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .send-confirm {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(80, 227, 164, .06);
+      border: 1px solid rgba(80, 227, 164, .2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .send-confirm .check {
+      font-size: 18px;
+    }
+
+    .code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      height: 0;
+      transition: opacity .2s, height .2s;
+    }
+
+    .typing-indicator.visible {
+      opacity: 1;
+      height: auto;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: .3;
+      animation: typing 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: .2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: .4s;
+    }
+
+    @keyframes typing {
+
+      0%,
+      80%,
+      100% {
+        opacity: .3;
+        transform: scale(.8)
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    .typing-text {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── Input area ─────────────────────────────────────────────────────────────── */
+    .input-area {
+      padding: 16px 32px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 12px 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .input-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 92, 252, .12);
+    }
+
+    #chat-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      min-height: 24px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    #chat-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      transform: scale(1.08);
+      box-shadow: var(--glow);
+    }
+
+    .send-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .input-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 4px 0;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .model-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dim);
+      font-size: 10px;
+      letter-spacing: .5px;
+    }
+
+    .model-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* ── Right panel ────────────────────────────────────────────────────────────── */
+    .right-panel {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-tab {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      color: var(--text-dim);
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .panel-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .panel-content::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .panel-content::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    .panel-section {
+      display: none;
+    }
+
+    .panel-section.active {
+      display: block;
+    }
+
+    /* Knowledge panel */
+    .kb-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .kb-input {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color .2s;
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .kb-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .kb-input:focus {
+      border-color: var(--accent);
+    }
+
+    .kb-title {
+      min-height: auto;
+      resize: none;
+    }
+
+    .kb-submit {
+      background: rgba(124, 92, 252, .15);
+      border: 1px solid rgba(124, 92, 252, .3);
+      color: var(--accent);
+      border-radius: 8px;
+      padding: 9px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .15s;
+    }
+
+    .kb-submit:hover {
+      background: rgba(124, 92, 252, .25);
+    }
+
+    .kb-doc-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+    }
+
+    .kb-doc-title {
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+
+    .kb-doc-snippet {
+      font-size: 10px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* Stats panel */
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-sub {
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 3px;
+    }
+
+    .tool-usage-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tool-usage-item:last-child {
+      border: none;
+    }
+
+    .tool-usage-name {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .tool-usage-count {
+      background: rgba(124, 92, 252, .12);
+      border: 1px solid rgba(124, 92, 252, .2);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 10px;
+      color: var(--accent);
+    }
+
+    /* ── Notification toast ─────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--text);
+      box-shadow: var(--glow2);
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Settings panel ─────────────────────────────────────────────────────── */
+    .settings-group {
+      margin-bottom: 20px;
+      padding: 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+    }
+
+    .settings-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .settings-hint {
+      font-size: 10px;
+      color: var(--text-faint);
+      line-height: 1.6;
+      margin-top: 6px;
+    }
+
+    #demo-slider.on {
+      background: rgba(124, 92, 252, .5) !important;
+    }
+
+    #demo-knob.on {
+      transform: translateX(18px);
+      background: var(--accent) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <div>
+        <div class="logo-text">ARIA</div>
+        <div class="logo-sub">Multi-Tool AI Assistant</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-pill">
+        <div class="status-dot"></div>ONLINE
+      </div>
+      <div class="demo-badge visible" id="demo-badge">⚠ DEMO MODE</div>
+      <button class="new-chat-btn" onclick="newChat()">+ NEW CHAT</button>
+    </div>
+  </header>
+
+  <!-- ── App Body ─────────────────────────────────────────────────────────────── -->
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">CONVERSATIONS</div>
+      <div class="sessions-list" id="sessions-list">
+        <div style="padding:8px 12px;font-size:11px;color:var(--text-dim)">No sessions yet.</div>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">AVAILABLE TOOLS</div>
+      <div class="tool-grid">
+        <div class="tool-pill"><span class="ti">📧</span> Gmail</div>
+        <div class="tool-pill"><span class="ti">📅</span> Calendar</div>
+        <div class="tool-pill"><span class="ti">▶️</span> YouTube</div>
+        <div class="tool-pill"><span class="ti">🎵</span> Spotify</div>
+        <div class="tool-pill"><span class="ti">🧠</span> RAG KB</div>
+        <div class="tool-pill"><span class="ti">🔍</span> Search</div>
+      </div>
+    </aside>
+
+    <!-- Chat -->
+    <main class="chat-area">
+      <!-- Welcome -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-glyph">⬡</div>
+        <h2>ARIA</h2>
+        <p>Your intelligent multi-tool assistant. I can send emails, schedule meetings, search YouTube and Spotify, and
+          remember anything you teach me.</p>
+        <div class="prompt-chips">
+          <div class="chip" onclick="useChip(this)">📧 Send an Email</div>
+          <div class="chip" onclick="useChip(this)">📅 Schedule a team meeting </div>
+          <div class="chip" onclick="useChip(this)">▶️ Find YouTube videos </div>
+          <div class="chip" onclick="useChip(this)">🎵 Search Spotify for music</div>
+          <div class="chip" onclick="useChip(this)">📬 Show my recent emails</div>
+          <div class="chip" onclick="useChip(this)">🧠 Save a note</div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages" id="messages">
+        <div class="typing-indicator" id="typing">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--surface2);
+          border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">⬡</div>
+          <div>
+            <div class="typing-dots">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+            <div class="typing-text">ARIA is thinking…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="input-area">
+        <div class="input-box">
+          <textarea id="chat-input" placeholder="Ask ARIA anything… send an email, search YouTube, schedule a meeting…"
+            rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+        <div class="input-meta">
+          <div class="model-tag">
+            <div class="model-dot"></div> aditi malik
+          </div>
+        </div>
+      </div>
+    </main>
+
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" onclick="switchTab(0)">KNOWLEDGE</button>
+        <button class="panel-tab" onclick="switchTab(1)">STATS</button>
+        <button class="panel-tab" onclick="switchTab(2)">⚙ SETTINGS</button>
+      </div>
+      <div class="panel-content">
+        <!-- Knowledge -->
+        <div class="panel-section active" id="panel-0">
+          <div class="kb-form">
+            <input type="text" class="kb-input kb-title" id="kb-title" placeholder="Document title…">
+            <textarea class="kb-input" id="kb-content" placeholder="Paste text to save to knowledge base…"></textarea>
+            <button class="kb-submit" onclick="saveToKB()">SAVE TO KNOWLEDGE BASE</button>
+          </div>
+          <div class="sidebar-section" style="padding:0 0 10px">STORED DOCUMENTS</div>
+          <div id="kb-docs"></div>
+        </div>
+        <!-- Stats -->
+        <div class="panel-section" id="panel-1">
+          <div class="stat-card">
+            <div class="stat-label">TOTAL MESSAGES</div>
+            <div class="stat-value" id="stat-msgs">0</div>
+            <div class="stat-sub">across all sessions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">TOOL CALLS</div>
+            <div class="stat-value" id="stat-tools">0</div>
+            <div class="stat-sub">actions executed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">SESSIONS</div>
+            <div class="stat-value" id="stat-sessions">0</div>
+          </div>
+          <div class="sidebar-section" style="padding:16px 0 10px">TOOL USAGE</div>
+          <div id="tool-usage-list"></div>
+        </div>
+        <!-- Settings -->
+        <div class="panel-section" id="panel-2">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+            Configure real API connections. Leave blank to keep using Demo mode.
+          </div>
+
+          <!-- Demo Mode toggle -->
+          <div
+            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px">
+            <span style="font-size:12px;color:var(--text)">DEMO MODE</span>
+            <label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer">
+              <input type="checkbox" id="toggle-demo" onchange="toggleDemo(this.checked)"
+                style="opacity:0;width:0;height:0">
+              <span id="demo-slider"
+                style="position:absolute;inset:0;background:var(--border2);border-radius:11px;transition:.3s">
+                <span
+                  style="position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--text-dim);border-radius:50%;transition:.3s"
+                  id="demo-knob"></span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Gemini -->
+          <div class="settings-group">
+            <div class="settings-label">🤖 GEMINI API KEY</div>
+            <input class="kb-input" type="password" id="set-gemini" placeholder="AIza…">
+            <div class="settings-hint">Get key at <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                style="color:var(--accent)">aistudio.google.com</a></div>
+          </div>
+
+          <!-- Spotify -->
+          <div class="settings-group">
+            <div class="settings-label">🎵 SPOTIFY</div>
+            <input class="kb-input" type="text" id="set-sp-id" placeholder="Client ID">
+            <input class="kb-input" type="password" id="set-sp-sec" placeholder="Client Secret" style="margin-top:6px">
+            <div class="settings-hint">
+              <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:var(--accent)">Create
+                app</a>
+              → Add redirect URI: <code
+                style="font-size:10px;color:var(--cyan)">http://localhost:8000/auth/spotify/callback</code>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="kb-submit" style="flex:1" onclick="saveSettings()">SAVE</button>
+              <button class="kb-submit"
+                style="flex:1;background:rgba(80,227,164,.1);border-color:rgba(80,227,164,.3);color:var(--green)"
+                onclick="connectSpotify()">CONNECT ▶</button>
+            </div>
+            <div id="sp-status" style="font-size:11px;margin-top:6px;color:var(--text-dim)"></div>
+          </div>
+
+          <!-- SMTP Options -->
+          <div class="settings-group">
+            <div class="settings-label">📧 SMTP EMAIL (Alternative to Gmail OAuth)</div>
+            <input class="kb-input" type="email" id="set-smtp-em" placeholder="Your Email (e.g., foo@gmail.com)">
+            <input class="kb-input" type="password" id="set-smtp-pw" placeholder="App Password" style="margin-top:6px">
+            <div class="settings-hint">
+              Use an App Password. <a href="https://myaccount.google.com/apppasswords" target="_blank"
+                style="color:var(--accent)">Create Gmail App Password</a>
+            </div>
+          </div>
+
+          <!-- Gmail -->
+          <div class="settings-group">
+            <div class="settings-label">📧 GMAIL / CALENDAR</div>
+            <div class="settings-hint" style="margin-bottom:8px">
+              1. <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent)">Google Cloud
+                Console</a>
+              → Enable Gmail + Calendar APIs<br>
+              2. Credentials → OAuth 2.0 → Desktop App → Download JSON<br>
+              3. Save as <code style="color:var(--cyan)">backend/credentials.json</code><br>
+              4. Click Connect below
+            </div>
+            <button class="kb-submit"
+              style="width:100%;background:rgba(92,240,252,.08);border-color:rgba(92,240,252,.2);color:var(--cyan)"
+              onclick="connectGmail()">CONNECT GMAIL ▶</button>
+            <div id="gmail-status" style="font-size:11px;margin-top:6px;color:var(--text-dim)"></div>
+          </div>
+
+          <!-- YouTube -->
+          <div class="settings-group">
+            <div class="settings-label">▶️ YOUTUBE API KEY</div>
+            <input class="kb-input" type="password" id="set-yt" placeholder="AIza…">
+            <div class="settings-hint"><a href="https://console.cloud.google.com/" target="_blank"
+                style="color:var(--accent)">Enable YouTube Data API v3</a> in Google Cloud Console</div>
+          </div>
+
+          <!-- Qdrant -->
+          <div class="settings-group">
+            <div class="settings-label">🧠 QDRANT DB</div>
+            <input class="kb-input" type="text" id="set-qd-url" placeholder="URL (e.g. http://localhost:6333)">
+            <input class="kb-input" type="password" id="set-qd-key" placeholder="API Key (optional)"
+              style="margin-top:6px">
+            <button class="kb-submit" style="width:100%;margin-top:8px" onclick="saveSettings()">SAVE ALL
+              SETTINGS</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ── Config ─────────────────────────────────────────────────────────────── */
+    const API = 'http://127.0.0.1:8000/api';
+
+
+    /* ── State ──────────────────────────────────────────────────────────────── */
+    let currentSession = null;
+    let sessions = [];
+    let stats = { messages: 0, toolCalls: 0, toolBreakdown: {} };
+    let kbDocs = [];
+
+    /* ── Init ───────────────────────────────────────────────────────────────── */
+    async function init() {
+      await loadSessions();
+      await newChat();
+      loadKBDocs();
+      loadSettings();
+    }
+
+    /* ── Sessions ────────────────────────────────────────────────────────────── */
+    async function loadSessions() {
+      try {
+        const res = await fetch(`${API}/sessions`);
+        sessions = await res.json();
+        renderSessions();
+        document.getElementById('stat-sessions').textContent = sessions.length;
+      } catch (err) {
+        /* backend offline – demo mode */
+      }
+    }
+    function renderSessions() {
+      const list = document.getElementById('sessions-list');
+      if (!sessions.length) {
+        list.innerHTML = '<div style="padding:8px 12px;font-size:11px;color:var(--text-dim)">No sessions yet.</div>';
+        return;
+      }
+      list.innerHTML = sessions.map(s => `
+    <div class="session-item ${s.session_id === currentSession ? 'active' : ''}"
+         onclick="switchSession('${s.session_id}')">
+      <span class="session-item-title">${s.title}</span>
+      <button class="session-delete" onclick="deleteSession(event,'${s.session_id}')">✕</button>
+    </div>`).join('');
+    }
+
+    async function newChat() {
+      const title = 'Chat ' + new Date().toLocaleTimeString();
+      try {
+        const res = await fetch(`${API}/sessions`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title })
+        });
+        const s = await res.json();
+        currentSession = s.session_id;
+        sessions.unshift(s);
+      } catch {
+        currentSession = 'demo_' + Math.random().toString(36).slice(2);
+        sessions.unshift({ session_id: currentSession, title });
+      }
+      renderSessions();
+      showWelcome();
+      document.getElementById('stat-sessions').textContent = sessions.length;
+    }
+
+    async function switchSession(sid) {
+      currentSession = sid;
+      renderSessions();
+      try {
+        const res = await fetch(`${API}/sessions/${sid}/messages`);
+        const msgs = await res.json();
+
+        showMessages();
+
+        document.getElementById('messages').innerHTML = '';
+        msgs.forEach(m => {
+          if (m.role === 'user') appendMessage('user', m.content);
+          else if (m.role === 'assistant') appendMessage('assistant', m.content, m.tool_calls);
+        });
+        scrollToBottom();
+      } catch { showWelcome(); }
+    }
+
+    async function deleteSession(e, sid) {
+      e.stopPropagation();
+      try { await fetch(`${API}/sessions/${sid}`, { method: 'DELETE' }); } catch { }
+      sessions = sessions.filter(s => s.session_id !== sid);
+      if (currentSession === sid) { await newChat(); }
+      renderSessions();
+    }
+
+    /* ── Chat ────────────────────────────────────────────────────────────────── */
+
+    function showMessages() {
+      document.getElementById('welcome').classList.add('hidden');
+      document.getElementById('messages').classList.add('visible');
+    }
+
+    function showWelcome() {
+      document.getElementById('welcome').classList.remove('hidden');
+      document.getElementById('messages').classList.remove('visible');
+    }
+
+    function appendTypingIndicator() {
+      const wrap = document.getElementById('messages');
+      let typing = document.getElementById('typing');
+      if (!typing) {
+        typing = document.createElement('div');
+        typing.className = 'typing-indicator';
+        typing.id = 'typing';
+        typing.innerHTML = `
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--surface2);
+          border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">⬡</div>
+        <div>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+          <div class="typing-text">ARIA is thinking…</div>
+        </div>
+      `;
+        wrap.appendChild(typing);
+      } else {
+        wrap.appendChild(typing); // Move to bottom
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      autoResize(input);
+
+      showMessages();
+
+      appendMessage('user', text);
+      showTyping(true);
+      setInputEnabled(false);
+
+      try {
+        const res = await fetch(`${API}/chat/stream`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSession, message: text })
+        });
+
+        showTyping(false);
+        let msgDiv = appendMessage('assistant', '', null);
+        let fullText = '';
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let lines = buffer.split('\n');
+          buffer = lines.pop(); // keep the last potentially incomplete line
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            let dataStr = line;
+            if (line.startsWith('data: ')) {
+              dataStr = line.substring(6);
+            } else if (line.startsWith('data:')) {
+              dataStr = line.substring(5);
+            } else {
+              continue; // Not an SSE data stream payload
+            }
+
+            if (dataStr === '[DONE]') break;
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.chunk) {
+                fullText += data.chunk;
+                updateAssistantBubble(msgDiv, fullText, null);
+              }
+              if (data.tool_calls) {
+                updateAssistantBubble(msgDiv, fullText, data.tool_calls);
+                updateStats(data.tool_calls);
+              }
+              if (data.session_id) {
+                const sess = sessions.find(s => s.session_id === currentSession);
+                if (sess && sess.title.startsWith('Chat ')) {
+                  sess.title = text.slice(0, 32) + (text.length > 32 ? '…' : '');
+                  renderSessions();
+                }
+              }
+            } catch (e) {
+              // Buffer it back if it's incomplete JSON, might just be a chunked payload from python
+              // Though SSE is naturally lines, sometimes multiple SSE come without newline breaks.
+              console.error("Parse error:", e, dataStr);
+            }
+          }
+        }
+      } catch (err) {
+        showTyping(false);
+        appendMessage('assistant', `⚠️ Could not reach the backend. If you just updated settings and are running with --reload, please wait a few seconds. Otherwise, make sure the FastAPI server is running on port 8000.\n\n\`\`\`\ncd backend\nrun_server.bat\n\`\`\``, []);
+      }
+      setInputEnabled(true);
+      scrollToBottom();
+    }
+
+    function appendMessage(role, content, toolCalls) {
+      const wrap = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      const avatar = role === 'user' ? '👤' : '⬡';
+
+      let toolHtml = '';
+      if (toolCalls && toolCalls.length) {
+        toolHtml = `<div class="tool-cards">${toolCalls.map(renderToolCard).join('')}</div>`;
+      }
+
+      div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble">
+      ${escHtml(content).replace(/\n/g, '<br>').replace(/\`\`\`([\s\S]*?)\`\`\`/g,
+        (_, c) => `<div class="code-block">${escHtml(c).trim()}</div>`)}
+      ${toolHtml}
+    </div>`;
+      wrap.insertBefore(div, document.getElementById('typing'));
+      stats.messages++;
+      document.getElementById('stat-msgs').textContent = stats.messages;
+      return div;
+    }
+
+    function updateAssistantBubble(div, content, toolCalls) {
+      let toolHtml = '';
+      if (toolCalls && toolCalls.length) {
+        toolHtml = `<div class="tool-cards">${toolCalls.map(renderToolCard).join('')}</div>`;
+      }
+      const bubble = div.querySelector('.msg-bubble');
+      if (bubble) {
+        bubble.innerHTML = `
+      ${escHtml(content).replace(/\n/g, '<br>').replace(/\`\`\`([\s\S]*?)\`\`\`/g,
+          (_, c) => `<div class="code-block">${escHtml(c).trim()}</div>`)}
+      ${toolHtml}
+    `;
+      }
+      scrollToBottom();
+    }
+
+    function renderToolCard(tc) {
+      const id = 'tc_' + Math.random().toString(36).slice(2);
+      const badge = toolBadge(tc.tool);
+      const icon = toolIcon(tc.tool);
+      const body = renderToolResult(tc.tool, tc.result);
+      return `
+    <div class="tool-card">
+      <div class="tool-card-header" onclick="toggleCard('${id}')">
+        ${icon} <span class="${badge[0]}">${badge[1]}</span>
+        <span style="font-size:11px;color:var(--text-dim);flex:1;margin-left:6px">${tc.tool.replace(/_/g, ' ')}</span>
+        ${tc.result?.demo ? '<span style="font-size:9px;color:var(--gold);letter-spacing:1px">DEMO</span>' : ''}
+        <span class="tool-card-toggle" id="${id}-toggle">▼</span>
+      </div>
+      <div class="tool-card-body" id="${id}">${body}</div>
+    </div>`;
+    }
+
+    function toggleCard(id) {
+      const body = document.getElementById(id);
+      const tog = document.getElementById(id + '-toggle');
+      const open = body.classList.toggle('open');
+      tog.textContent = open ? '▲' : '▼';
+    }
+
+    function renderToolResult(tool, result) {
+      if (!result) return '<div style="font-size:11px;color:var(--text-dim)">No result.</div>';
+      switch (tool) {
+        case 'send_email':
+          return `<div class="send-confirm">
+        <span class="check">✓</span>
+        <div>
+          <div style="font-size:12px">Email sent to <strong>${result.to}</strong></div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Subject: ${result.subject}</div>
+        </div></div>`;
+        case 'read_emails':
+          return (result.emails || []).map(e => `
+        <div class="email-item">
+          <div class="email-item-from">${escHtml(e.from || '')}</div>
+          <div class="email-item-subj">${escHtml(e.subject || '(no subject)')}</div>
+          <div class="email-item-snip">${escHtml(e.snippet || '')}</div>
+          <div class="email-item-date">${e.date || ''} ${e.unread ? '<span style="color:var(--cyan)">● UNREAD</span>' : ''}</div>
+        </div>`).join('');
+        case 'schedule_meeting':
+          return `<div class="send-confirm">
+        <span class="check">📅</span>
+        <div>
+          <div style="font-size:12px"><strong>${escHtml(result.title || 'Meeting')}</strong></div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">${result.start ? new Date(result.start).toLocaleString() : ''}</div>
+          ${result.meet_link ? `<a class="result-card-link" href="${result.meet_link}" target="_blank">🔗 Meet link</a>` : ''}
+        </div></div>`;
+        case 'list_calendar_events':
+          return (result.events || []).map(e => {
+            const dt = new Date(e.start);
+            return `<div class="event-item">
+          <div class="event-date-block">
+            <div class="event-day">${dt.getDate()}</div>
+            <div class="event-month">${dt.toLocaleString('default', { month: 'short' }).toUpperCase()}</div>
+          </div>
+          <div>
+            <div class="event-info-title">${escHtml(e.summary || 'Event')}</div>
+            <div class="event-info-time">${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          </div></div>`;
+          }).join('');
+        case 'search_youtube':
+          return `<div class="tool-result-grid">${(result.videos || []).map(v => `
+        <div class="result-card">
+          <div class="result-card-title">${escHtml(v.title)}</div>
+          <div class="result-card-meta">${escHtml(v.channel)} · ${v.duration || ''} · ${v.views || ''}</div>
+          <a class="result-card-link" href="${v.url}" target="_blank">▶ Watch on YouTube</a>
+        </div>`).join('')}</div>`;
+        case 'search_spotify':
+          return `<div class="tool-result-grid">${(result.results || []).map(t => `
+        <div class="result-card">
+          <div class="result-card-title">${escHtml(t.name)}</div>
+          <div class="result-card-meta">${escHtml(t.artist || '')}${t.duration ? ' · ' + t.duration : ''}</div>
+          <a class="result-card-link" href="${t.url}" target="_blank">🎵 Open in Spotify</a>
+        </div>`).join('')}</div>`;
+        case 'create_playlist':
+          return `<div class="send-confirm">
+        <span class="check">🎵</span>
+        <div>
+          <div style="font-size:12px">Playlist <strong>${escHtml(result.name || '')}</strong> created</div>
+          ${result.url ? `<a class="result-card-link" href="${result.url}" target="_blank">Open in Spotify</a>` : ''}
+        </div></div>`;
+        case 'add_to_knowledge_base':
+          if (result.status === 'QUEUED') {
+            return `<div class="send-confirm">
+           <span class="check" style="color:var(--gold)">⏳</span>
+           <div style="font-size:12px">Queued for later "<strong>${escHtml(result.title || '')}</strong>" (Rate Limited)</div>
+         </div>`;
+          }
+          return `<div class="send-confirm">
+        <span class="check">🧠</span>
+        <div style="font-size:12px">Saved "<strong>${escHtml(result.title || '')}</strong>" (${result.chars} chars)</div>
+      </div>`;
+        case 'search_knowledge_base':
+          if (!result.results?.length) return '<div style="font-size:11px;color:var(--text-dim)">No matching documents found.</div>';
+          return result.results.map(r => `
+        <div class="kb-doc-item">
+          <div class="kb-doc-title">${escHtml(r.title)} <span style="color:var(--text-faint)">· ${(r.score * 100).toFixed(0)}%</span></div>
+          <div class="kb-doc-snippet">${escHtml(r.content.slice(0, 200))}…</div>
+        </div>`).join('');
+        default:
+          return `<div class="code-block">${escHtml(JSON.stringify(result, null, 2))}</div>`;
+      }
+    }
+
+    function toolBadge(tool) {
+      if (tool.includes('email')) return ['tool-badge badge-email', 'EMAIL'];
+      if (tool.includes('calendar') || tool.includes('meeting')) return ['tool-badge badge-calendar', 'CALENDAR'];
+      if (tool.includes('youtube')) return ['tool-badge badge-youtube', 'YOUTUBE'];
+      if (tool.includes('spotify') || tool.includes('playlist')) return ['tool-badge badge-spotify', 'SPOTIFY'];
+      if (tool.includes('knowledge')) return ['tool-badge badge-knowledge', 'KNOWLEDGE'];
+      return ['tool-badge badge-default', 'TOOL'];
+    }
+
+    function toolIcon(tool) {
+      const icons = {
+        send_email: '📤', read_emails: '📬',
+        schedule_meeting: '📅', list_calendar_events: '🗓',
+        search_youtube: '▶️', search_spotify: '🎵', create_playlist: '➕',
+        add_to_knowledge_base: '💾', search_knowledge_base: '🔍',
+      };
+      return `<span style="font-size:14px">${icons[tool] || '⚙'}</span>`;
+    }
+
+    /* ── Knowledge Base Panel ─────────────────────────────────────────────────── */
+    async function saveToKB() {
+      const title = document.getElementById('kb-title').value.trim();
+      const content = document.getElementById('kb-content').value.trim();
+      if (!title || !content) { showToast('Please enter a title and content.'); return; }
+      try {
+        const res = await fetch(`${API}/knowledge`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content })
+        });
+        const data = await res.json();
+
+        document.getElementById('kb-title').value = '';
+        document.getElementById('kb-content').value = '';
+
+        if (data.status === 'QUEUED') {
+          showToast('⏳ Queued for Knowledge Base (Rate Limited)');
+        } else {
+          showToast('✓ Saved to knowledge base');
+        }
+        loadKBDocs();
+      } catch { showToast('Backend offline – KB save skipped in demo.'); }
+    }
+
+    async function loadKBDocs() {
+      try {
+        const res = await fetch(`${API}/knowledge/search?q=&top_k=20`);
+        // Just use the endpoint to confirm connection; display static seeds
+      } catch { }
+      // Display seeded docs
+      const seeded = [
+        { title: 'Company Policies', snippet: 'Vacation: 15 days/yr. Remote: up to 3 days/wk. Expenses within 30 days…' },
+        { title: 'Project Roadmap', snippet: 'Q1: MVP. Q2: Mobile app. Q3: Enterprise. Q4: International expansion…' },
+      ];
+      document.getElementById('kb-docs').innerHTML = seeded.map(d => `
+    <div class="kb-doc-item">
+      <div class="kb-doc-title">${escHtml(d.title)}</div>
+      <div class="kb-doc-snippet">${escHtml(d.snippet)}</div>
+    </div>`).join('');
+    }
+
+    /* ── Stats ───────────────────────────────────────────────────────────────── */
+    function updateStats(toolCalls) {
+      stats.toolCalls += toolCalls.length;
+      document.getElementById('stat-tools').textContent = stats.toolCalls;
+      toolCalls.forEach(tc => {
+        stats.toolBreakdown[tc.tool] = (stats.toolBreakdown[tc.tool] || 0) + 1;
+      });
+      renderToolUsage();
+    }
+
+    function renderToolUsage() {
+      const entries = Object.entries(stats.toolBreakdown).sort((a, b) => b[1] - a[1]);
+      document.getElementById('tool-usage-list').innerHTML = entries.length
+        ? entries.map(([t, c]) => `
+        <div class="tool-usage-item">
+          <span class="tool-usage-name">${t.replace(/_/g, ' ')}</span>
+          <span class="tool-usage-count">${c}</span>
+        </div>`).join('')
+        : '<div style="font-size:11px;color:var(--text-dim)">No tools used yet.</div>';
+    }
+
+    /* ── UI helpers ──────────────────────────────────────────────────────────── */
+    function showWelcome() {
+      document.getElementById('welcome').classList.remove('hidden');
+      document.getElementById('messages').classList.remove('visible');
+    }
+    function showMessages() {
+      document.getElementById('welcome').classList.add('hidden');
+      document.getElementById('messages').classList.add('visible');
+    }
+    function appendTypingIndicator() {
+      const wrap = document.getElementById('messages');
+      wrap.appendChild(document.getElementById('typing'));
+    }
+    function showTyping(v) {
+      document.getElementById('typing').classList.toggle('visible', v);
+      scrollToBottom();
+    }
+    function scrollToBottom() {
+      const m = document.getElementById('messages');
+      m.scrollTop = m.scrollHeight;
+    }
+    function setInputEnabled(v) {
+      document.getElementById('chat-input').disabled = !v;
+      document.getElementById('send-btn').disabled = !v;
+    }
+    function switchTab(i) {
+      document.querySelectorAll('.panel-tab').forEach((t, j) => t.classList.toggle('active', i === j));
+      document.querySelectorAll('.panel-section').forEach((s, j) => s.classList.toggle('active', i === j));
+    }
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    }
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    }
+    function useChip(el) {
+      document.getElementById('chat-input').value = el.textContent.replace(/^[^\s]+\s/, '');
+      sendMessage();
+    }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ── Settings ────────────────────────────────────────────────────────────── */
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${API}/settings`);
+        const s = await res.json();
+
+        // Demo toggle
+        const tog = document.getElementById('toggle-demo');
+        if (tog) {
+          tog.checked = s.DEMO_MODE;
+          updateDemoSlider(s.DEMO_MODE);
+        }
+        document.getElementById('demo-badge').classList.toggle('visible', s.DEMO_MODE);
+
+        // Status badges
+        if (s.spotify_configured) {
+          document.getElementById('sp-status').textContent = '✅ Credentials saved  ' + (s.SPOTIFY_CLIENT_ID || '');
+        }
+        if (s.gmail_token_exists) {
+          document.getElementById('gmail-status').textContent = '✅ Gmail token found — connected';
+        } else if (s.gmail_creds_exists) {
+          document.getElementById('gmail-status').textContent = '⚠️ credentials.json found — click Connect to authorise';
+        } else if (s.SMTP_EMAIL) {
+          document.getElementById('gmail-status').textContent = '✅ Using alternative SMTP dispatch';
+        }
+      } catch (e) { /* backend offline */ }
+    }
+
+    function updateDemoSlider(on) {
+      const sl = document.getElementById('demo-slider');
+      const kn = document.getElementById('demo-knob');
+      if (!sl || !kn) return;
+      sl.classList.toggle('on', on);
+      kn.classList.toggle('on', on);
+    }
+
+    async function toggleDemo(checked) {
+      updateDemoSlider(checked);
+      document.getElementById('demo-badge').classList.toggle('visible', checked);
+      await fetch(`${API}/settings`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ DEMO_MODE: checked })
+      });
+      showToast(checked ? '⚠ Demo mode ON' : '🔴 Demo mode OFF — live APIs active');
+    }
+
+    async function saveSettings() {
+      const payload = {};
+      const g = document.getElementById('set-gemini').value.trim();
+      const si = document.getElementById('set-sp-id').value.trim();
+      const ss = document.getElementById('set-sp-sec').value.trim();
+      const yt = document.getElementById('set-yt').value.trim();
+      const qu = document.getElementById('set-qd-url').value.trim();
+      const qk = document.getElementById('set-qd-key').value.trim();
+      const se = document.getElementById('set-smtp-em').value.trim();
+      const sp = document.getElementById('set-smtp-pw').value.trim();
+      if (g) payload.GEMINI_API_KEY = g;
+      if (si) payload.SPOTIFY_CLIENT_ID = si;
+      if (ss) payload.SPOTIFY_CLIENT_SECRET = ss;
+      if (yt) payload.YOUTUBE_API_KEY = yt;
+      if (qu) payload.QDRANT_URL = qu;
+      if (qk) payload.QDRANT_API_KEY = qk;
+      if (se) payload.SMTP_EMAIL = se;
+      if (sp) payload.SMTP_PASSWORD = sp;
+      if (!Object.keys(payload).length) { showToast('Nothing to save'); return; }
+
+      const res = await fetch(`${API}/settings`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      showToast('✅ Saved: ' + data.updated.join(', '));
+      // Clear password fields (do not clear URL or Email)
+      ['set-gemini', 'set-sp-sec', 'set-yt', 'set-qd-key', 'set-smtp-pw'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      if (si) document.getElementById('sp-status').textContent = '✅ Credentials saved';
+    }
+
+    async function connectSpotify() {
+      const si = document.getElementById('set-sp-id').value.trim();
+      const ss = document.getElementById('set-sp-sec').value.trim();
+      if (si && ss) await saveSettings();
+      const statusEl = document.getElementById('sp-status');
+      statusEl.textContent = 'Opening Spotify authorisation…';
+      const win = window.open('http://localhost:8000/auth/spotify', '_blank', 'width=500,height=700');
+      // Poll until callback succeeds
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        if (attempts > 60) { clearInterval(poll); return; }
+        try {
+          const r = await fetch('http://localhost:8000/auth/spotify/status');
+          const d = await r.json();
+          if (d.connected) {
+            clearInterval(poll);
+            statusEl.textContent = '✅ Spotify connected!';
+            showToast('🎵 Spotify connected!');
+            if (win && !win.closed) win.close();
+          }
+        } catch { }
+      }, 2000);
+    }
+
+    async function connectGmail() {
+      const statusEl = document.getElementById('gmail-status');
+      statusEl.textContent = 'Opening Gmail authorisation…';
+      const win = window.open('http://localhost:8000/auth/gmail', '_blank', 'width=500,height=700');
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        if (attempts > 90) { clearInterval(poll); return; }
+        try {
+          const r = await fetch('http://localhost:8000/auth/gmail/status');
+          const d = await r.json();
+          if (d.connected) {
+            clearInterval(poll);
+            statusEl.textContent = '✅ Gmail connected!';
+            showToast('📧 Gmail connected!');
+            if (win && !win.closed) win.close();
+          }
+        } catch { }
+      }, 2000);
+    }
+
+    /* ── Boot ────────────────────────────────────────────────────────────────── */
+    init();
+  </script>
+</body>
+
+</html>
